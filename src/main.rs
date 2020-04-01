@@ -22,15 +22,20 @@ mod schema;
 mod utils;
 
 
-#[get("/<id>")]
-fn get_image<'r>(id: &RawStr, pool: State<SqlitePool>) -> Response<'r> {
+#[get("/<id>?<preview>")]
+fn get_image<'r>(id: &RawStr, preview: Option<bool>, pool: State<SqlitePool>) -> Response<'r> {
     match id.as_str().parse() {
         Err(_) => error_json_response("Image id must be integer", Status::BadRequest),
         Ok(id) => match ImageService::find(id, pool.inner()) {
             Err(_) => error_json_response("Image not found", Status::NotFound),
             Ok(image) => {
+                let bytes = match preview.unwrap_or(false) {
+                    true => image.preview_bytes.expect("Image preview must be set, \
+                        ImageService's internal error"),
+                    false => image.bytes
+                };
                 let content_type = ContentType::from_str(image.content_type.as_str());
-                raw_response(image.bytes, content_type.unwrap())
+                raw_response(bytes, content_type.unwrap())
             }
         }
     }
