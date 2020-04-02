@@ -6,6 +6,8 @@ use crate::schema::images::dsl::*;
 use self::image::ImageFormat;
 use self::image::imageops::FilterType;
 use crate::models::{ImageForm, Image};
+use reqwest::header::HeaderValue;
+use std::ops::Try;
 
 
 pub struct ImageService;
@@ -15,7 +17,24 @@ impl ImageService {
         images.find(_id).first::<Image>(&pool.connection())
     }
 
-    pub fn upload(image_form: &ImageForm, pool: &SqlitePool) -> i32 {
+    pub async fn upload_from_url(url: &str, pool: &SqlitePool) -> Result<i32, String> {
+        let res = reqwest::get(url).await.map_err(|e| e.to_string())?;
+        let _content_type: &HeaderValue = res.headers()
+            .get("Content-Type")
+            .into_result()
+            .map_err(|_| "Content-Type not found".to_string())?;
+        let content_type_str = _content_type.to_str().map_err(|e| e.to_string())?.to_string();
+        let _bytes = res.bytes().await.map_err(|e| e.to_string())?.to_vec();
+
+        let image_form = ImageForm {
+            title: url.to_string(),
+            content_type: content_type_str,
+            bytes: _bytes,
+        };
+        Self::upload(&image_form, pool)
+    }
+
+    pub fn upload(image_form: &ImageForm, pool: &SqlitePool) -> Result<i32, String> {
         diesel::insert_into(images)
             .values(image_form)
             .execute(&pool.connection())
