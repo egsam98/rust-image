@@ -2,7 +2,6 @@ extern crate image;
 
 use crate::db::SqlitePool;
 use crate::diesel::prelude::*;
-
 use crate::schema::images::dsl::*;
 use self::image::ImageFormat;
 use self::image::imageops::FilterType;
@@ -20,26 +19,26 @@ impl ImageService {
         diesel::insert_into(images)
             .values(image_form)
             .execute(&pool.connection())
-            .expect("Insert new image failed");
+            .map_err(|e| e.to_string())?;
 
         let _id = pool.last_rowid("images");
 
-        let preview = ImageService::generate_preview_image(&image_form.bytes);
+        let preview = ImageService::generate_preview_image(image_form)?;
+
         diesel::update(images.filter(id.eq(&_id)))
             .set(preview_bytes.eq(&preview))
             .execute(&pool.connection())
-            .expect(&format!("Set preview bytes to image with ID '{}' failed", _id));
-
-        return _id;
+            .map(|_| _id)
+            .map_err(|e| e.to_string())
     }
 
-    fn generate_preview_image(raw: &Vec<u8>) -> Vec<u8> {
-        let uploaded_image = image::load_from_memory(raw)
-            .expect("Image error")
+    fn generate_preview_image(image_form: &ImageForm) -> Result<Vec<u8>, String> {
+        let uploaded_image = image::load_from_memory(&image_form.bytes)
+            .map_err(|e| e.to_string())?
             .resize(100, 100, FilterType::Lanczos3);
         let mut buff = Vec::new();
         uploaded_image.write_to(&mut buff, ImageFormat::Png)
-            .expect("Error write to buff");
-        return buff;
+            .map_err(|e| e.to_string())?;
+        return Ok(buff);
     }
 }

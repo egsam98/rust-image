@@ -9,44 +9,50 @@ use rocket::http::{Status, ContentType};
 use crate::services::image_service::ImageService;
 use crate::db::{SqlitePool};
 use rocket::response::Response;
-use rocket_contrib::json::{JsonValue};
+use rocket_contrib::json::{Json};
 use crate::utils::images_multipart::ImagesMultipart;
 use std::str::FromStr;
 use rocket::http::RawStr;
-use crate::utils::http::{error_json_response, raw_response};
+use crate::utils::http::{raw_response, ToResponse};
+use std::collections::HashMap;
 
 mod db;
 mod models;
 mod services;
 mod schema;
-mod utils;
+#[macro_use]mod utils;
 
 
 #[get("/<id>?<preview>")]
 fn get_image<'r>(id: &RawStr, preview: Option<bool>, pool: State<SqlitePool>) -> Response<'r> {
-    match id.as_str().parse() {
-        Err(_) => error_json_response("Image id must be integer", Status::BadRequest),
-        Ok(id) => match ImageService::find(id, pool.inner()) {
-            Err(_) => error_json_response("Image not found", Status::NotFound),
-            Ok(image) => {
-                let bytes = match preview.unwrap_or(false) {
-                    true => image.preview_bytes.expect("Image preview must be set, \
+    let id= match id.as_str().parse() {
+        Err(_) => return json_response!(400, {"error": "Image id must be integer"}),
+        Ok(id) => id
+    };
+    match ImageService::find(id, pool.inner()) {
+        Err(_) => return json_response!(404, {"error": "Image not found"}),
+        Ok(image) => {
+            let bytes = match preview.unwrap_or(false) {
+                true => image.preview_bytes.expect("Image preview must be set, \
                         ImageService's internal error"),
-                    false => image.bytes
-                };
-                let content_type = ContentType::from_str(image.content_type.as_str());
-                raw_response(bytes, content_type.unwrap())
-            }
+                false => image.bytes
+            };
+            let content_type = ContentType::from_str(image.content_type.as_str());
+            raw_response(bytes, content_type.unwrap())
         }
     }
 }
 
-#[post("/", data="<images_multipart>")]
-fn create_image<'r>(images_multipart: ImagesMultipart, pool: State<SqlitePool>) -> JsonValue {
-    let new_ids: Vec<i32> = images_multipart.images.iter().map(|image_form| {
-        ImageService::upload(image_form, pool.inner())
-    }).collect();
-    return json!({"ids": new_ids});
+#[post("/", format="multipart/form-data", data="<images_multipart>")]
+fn create_image_from_multipart<'r>(images_multipart: ImagesMultipart, pool: State<SqlitePool>) -> Response<'r> {
+    let mut new_ids = Vec::new();
+    for image_form in images_multipart.images.iter() {
+        match ImageService::upload(image_form, pool.inner()) {
+            Err(e) => return json_response!(400, {"error": e}),
+            Ok(id) => new_ids.push(id)
+        }
+    };
+    return json_response!({"ids": new_ids});
 }
 
 fn main() {
