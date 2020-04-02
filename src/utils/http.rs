@@ -4,17 +4,6 @@ use std::io::Cursor;
 use rocket_contrib::json::JsonValue;
 
 
-#[macro_export]
-macro_rules! json_response {
-   ($code:expr, $($json:tt)+) => {
-       json!($($json)+).to_response(Some(Status::from_code($code).unwrap()))
-   };
-   ($($json:tt)+) => {
-        json!($($json)+).to_response(None)
-   };
-}
-
-
 pub trait ToResponse<'r> {
     fn to_response(&self, status: Option<Status>) -> Response<'r>;
 }
