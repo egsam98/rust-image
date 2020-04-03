@@ -19,7 +19,7 @@ impl ImageService {
     }
 
     pub fn upload_from_base64(base64: &str, pool: &SqlitePool) -> Result<i32, String> {
-        let err_str = "Incorrect base64 data. Must be 'data:<content-type>:base64,<encoded>'";
+        let err_str = "Incorrect base64 data. Must be 'data:image/<extension>:base64,<encoded>'";
         let re = Regex::new(r"data:(?P<type>.+);base64,(?P<encoded>.+)").unwrap();
         let captures = try_str!(re.captures(base64).into_result(), err_str);
         let encoded = try_str!(captures.name("encoded").into_result(), err_str).as_str();
