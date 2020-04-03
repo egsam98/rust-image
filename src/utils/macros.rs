@@ -17,3 +17,10 @@ macro_rules! try_str {
         $expr.map_err(|_| $msg)?
     };
 }
+
+#[macro_export]
+macro_rules! error {
+    ($($arg:tt)+) => (
+        log!(target: "error", $crate::log::Level::Error, $($arg)+);
+    );
+}

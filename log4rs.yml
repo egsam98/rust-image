@@ -1,0 +1,26 @@
+refresh_rate: 30 seconds
+
+appenders:
+  console:
+    kind: console
+
+  stdout_file:
+    kind: file
+    path: "logs/debug.log"
+
+  stderr_file:
+    kind: file
+    path: "logs/error.log"
+
+
+root:
+  level: info
+  appenders:
+    - console
+    - stdout_file
+
+loggers:
+  error:
+    level: error
+    appenders:
+      - stderr_file
