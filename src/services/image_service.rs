@@ -3,7 +3,7 @@ extern crate image;
 use crate::db::SqlitePool;
 use crate::diesel::prelude::*;
 use crate::schema::images::dsl::*;
-use self::image::{ImageFormat, DynamicImage};
+use self::image::ImageFormat;
 use self::image::imageops::FilterType;
 use crate::models::{ImageForm, Image};
 use reqwest::header::HeaderValue;
@@ -51,7 +51,7 @@ impl ImageService {
 
     pub fn upload(image_form: &ImageForm, pool: &SqlitePool) -> Result<i32, String> {
         if !Regex::new("^image/.+").unwrap().is_match(&image_form.content_type) {
-           return Err(format!("Invalid image format {}. Must be 'image/<format>'",
+           return Err(format!("Invalid image format '{}'. Must be 'image/<format>'",
                               image_form.content_type));
         }
         let preview = ImageService::generate_preview_image(image_form)?;

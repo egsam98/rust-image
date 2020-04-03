@@ -31,7 +31,12 @@ pub fn get_image<'r>(id: &RawStr, preview: Option<bool>, pool: State<SqlitePool>
 }
 
 #[post("/", format="multipart/form-data", data="<images_multipart>")]
-pub fn create_image_from_multipart<'r>(images_multipart: ImagesMultipart, pool: State<SqlitePool>) -> Response<'r> {
+pub fn create_image_from_multipart<'r>(images_multipart: Result<ImagesMultipart, String>,
+                                       pool: State<SqlitePool>) -> Response<'r> {
+    let images_multipart = match images_multipart {
+        Ok(mp) => mp,
+        Err(e) => return json_response!(400, {"error": e})
+    };
     let mut new_ids = Vec::new();
     for image_form in images_multipart.images.iter() {
         match ImageService::upload(image_form, pool.inner()) {
