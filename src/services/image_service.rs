@@ -34,7 +34,6 @@ impl ImageService {
         Self::upload(&image_form, pool)
     }
 
-    // TODO: fix input html
     pub async fn upload_from_url(url: &str, pool: &SqlitePool) -> Result<i32, String> {
         let res = try_str!(reqwest::get(url).await);
         let _content_type: &HeaderValue = try_str!(res.headers().get("Content-Type").into_result(),
@@ -51,19 +50,11 @@ impl ImageService {
     }
 
     pub fn upload(image_form: &ImageForm, pool: &SqlitePool) -> Result<i32, String> {
-        try_str!(diesel::insert_into(images)
-            .values(image_form)
-            .execute(&pool.connection()));
-
-        let _id = pool.last_rowid("images");
-
         let preview = ImageService::generate_preview_image(image_form)?;
-
-        diesel::update(images.filter(id.eq(&_id)))
-            .set(preview_bytes.eq(&preview))
-            .execute(&pool.connection())
-            .map(|_| _id)
-            .map_err(|e| e.to_string())
+        try_str!(diesel::insert_into(images)
+            .values((image_form, preview_bytes.eq(&preview)))
+            .execute(&pool.connection()));
+        Ok(pool.last_rowid("images"))
     }
 
     fn generate_preview_image(image_form: &ImageForm) -> Result<Vec<u8>, String> {
