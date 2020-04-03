@@ -45,11 +45,15 @@ pub fn create_image_from_multipart<'r>(images_multipart: ImagesMultipart, pool: 
 #[post("/", format="application/json", data="<data>")]
 #[tokio::main]
 pub async fn create_image_from_json<'r>(data: Json<HashMap<&str, &str>>, pool: State<SqlitePool>) -> Response<'r> {
-    if let Some(url) = data.get("url") {
-        return match ImageService::upload_from_url(url, &pool.inner()).await {
-            Ok(id) => json_response!({"id": id}),
-            Err(e) => json_response!(400, {"error": e})
-        };
+    let service_result = match data.get("url") {
+        Some(url) => ImageService::upload_from_url(url, &pool.inner()).await,
+        None => match data.get("base64") {
+            Some(base64) => ImageService::upload_from_base64(base64, pool.inner()),
+            None => return json_response!(400, {"error": "Must be any of json keys: [url, base64]"})
+        }
+    };
+    match service_result {
+        Ok(id) => json_response!({"id": id}),
+        Err(e) => json_response!(400, {"error": e})
     }
-    json_response!(400, {"error": "Must be any of json keys: [url]"})
 }
