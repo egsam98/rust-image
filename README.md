@@ -12,3 +12,5 @@ diesel setup
 diesel migration run
 cargo run
 ```
+
+После успешного запуска страница OpenAPI 3.0 документации сервиса доступна по адресу: http://localhost:8000
