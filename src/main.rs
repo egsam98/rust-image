@@ -9,6 +9,8 @@ use rocket_contrib::serve::StaticFiles;
 use crate::db::{SqlitePool};
 use rocket_contrib::templates::Template;
 use std::collections::HashMap;
+use rocket::Response;
+use crate::utils::http::ToResponse;
 
 #[macro_use]mod utils;
 mod db;
@@ -25,6 +27,11 @@ fn docs() -> Template {
     Template::render("index", HashMap::<String, String>::new())
 }
 
+#[catch(404)]
+fn handler_404<'r>() -> Response<'r> {
+    json_response!(404, {"error": "No matching routes to handle this request"})
+}
+
 fn main() {
     log4rs::init_file(LOG_CONFIG_FILENAME, Default::default()).unwrap();
     rocket::ignite()
@@ -33,6 +40,7 @@ fn main() {
         .mount("/docs", routes!(docs))
         .mount("/public", StaticFiles::from(STATIC_PATH_PREFIX))
         .mount("/api/image", controllers::init_routes())
+        .register(catchers!(handler_404))
         .attach(Template::fairing())
         .launch();
 }

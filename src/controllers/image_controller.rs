@@ -1,7 +1,7 @@
 use crate::services::image_service::ImageService;
 use rocket::{State, Response};
 use crate::utils::http::ToResponse;
-use rocket::http::{ContentType, Status, RawStr};
+use rocket::http::{ContentType, RawStr};
 use crate::db::SqlitePool;
 use crate::utils::images_multipart::ImagesMultipart;
 use std::collections::HashMap;
