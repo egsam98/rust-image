@@ -1,0 +1,124 @@
+openapi: 3.0.0
+info:
+  title: Документация API
+  description: Сервис загрузки и обработки(уменьшения размера до 100х100) изображений
+  version: 0.0.1
+servers:
+  - url: ""
+    description: Heroku Application Server
+paths:
+  /api/image/{id}:
+    get:
+      summary: /api/image/{id}
+      description: Запрос загруженного ранее изображения
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: ID изображения (получить можно в HTTP ответе после успешной загрузки на сервер)
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: preview
+          required: false
+          description: Выдать превью изображения (100x100)?
+          schema:
+            type: boolean
+            default: false
+      responses:
+        200:
+          description: ''
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        400:
+          description: 'Ошибка ввода нечислового ID'
+          content:
+            application/json:
+              example: {"error": "Image id must be integer"}
+              schema:
+                $ref: "#/components/schemas/error"
+        404:
+          description: "Изображение не найдено"
+          content:
+            application/json:
+              example: {"error":"Image not found"}
+              schema:
+                $ref: "#/components/schemas/error"
+  /api/image/:
+    post:
+      summary: /api/image/
+      description: Загрузка изображения(-ий) на сервер
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+            encoding:
+              image:
+                contentType: image/*
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    url:
+                      type: string
+                      format: url
+                - type: object
+                  properties:
+                    base64:
+                      type: string
+                      format: base64
+      responses:
+        200:
+          description: "В случае загрузки изображения через application/json возвращается один ID, в случае multipart/form-data - массив ID"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      id:
+                        type: integer
+                        minimum: 1
+                        example: 23
+                    required:
+                      - id
+                  - type: object
+                    properties:
+                      id:
+                        type: array
+                        items:
+                          type: integer
+                          minimum: 1
+                        example: [1, 3]
+                    required:
+                      - id
+        400:
+          description: 'Ошибка обработки изображения'
+          content:
+            application/json:
+              example: {"error":"Incorrect base64 data. Must be 'data:<content-type>:base64,<encoded>'"}
+              schema:
+                $ref: "#/components/schemas/error"
+
+
+components:
+  schemas:
+    error:
+      properties:
+        error:
+          type: string
+          description: Сообщение об ошибке
+      required:
+        - error

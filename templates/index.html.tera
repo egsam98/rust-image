@@ -1,0 +1,9 @@
+<html>
+<head>
+  <title>Документация API</title>
+</head>
+<body>
+<redoc spec-url='/public/swagger.yml'></redoc>
+<script src="/public/js/redoc.standalone.js"></script>
+</body>
+</html>
